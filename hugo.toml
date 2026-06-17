@@ -1,0 +1,83 @@
+baseURL = 'https://annotatedbook.com/'
+title = 'Annotated Book'
+theme = 'hextra'
+locale = 'en-us'
+enableRobotsTXT = true
+enableGitInfo = true
+hasCJKLanguage = false
+defaultContentLanguage = 'en'
+enableInlineShortcodes = true
+
+[outputs]
+  home = ['html']
+  page = ['html']
+  section = ['html', 'rss']
+
+[markup]
+  [markup.goldmark]
+    [markup.goldmark.renderer]
+      unsafe = true
+  [markup.highlight]
+    noClasses = false
+
+[menu]
+  [[menu.main]]
+    identifier = 'books'
+    name = 'Books'
+    pageRef = '/books'
+    weight = 1
+  [[menu.main]]
+    identifier = 'about'
+    name = 'About'
+    pageRef = '/about'
+    weight = 2
+  [[menu.main]]
+    name = 'Search'
+    weight = 3
+    [menu.main.params]
+      type = 'search'
+  [[menu.main]]
+    name = 'Store'
+    weight = 4
+    url = 'https://store.dodatech.com'
+    [menu.main.params]
+      icon = 'shopping-cart'
+
+[params]
+  description = 'Free annotated classic books — simplified English, vocabulary notes, chapter summaries, and literary analysis.'
+  
+  [params.navbar]
+    displayTitle = true
+    displayLogo = false
+    width = 'wide'
+  
+  [params.theme]
+    default = 'system'
+    displayToggle = true
+  
+  [params.footer]
+    enable = true
+    displayCopyright = true
+    displayPoweredBy = true
+    width = 'normal'
+  
+  displayUpdatedDate = true
+  dateFormat = "January 2, 2006"
+  
+  [params.search]
+    enable = true
+    type = 'flexsearch'
+    [params.search.flexsearch]
+      index = 'content'
+      tokenize = 'forward'
+  
+  [params.toc]
+    displayTags = true
+  
+  [params.highlight]
+    [params.highlight.copy]
+      enable = true
+      display = 'hover'
+  
+  [params.page]
+    width = 'normal'
