@@ -1,0 +1,15 @@
+---
+title: Chapter 122
+weight: 122
+build:
+  render: false
+  list: true
+description: "Moby Dick Chapter 122 — Midnight Aloft.--Thunder and Lightning.."
+---
+
+THE MAIN-TOP-SAIL YARD.--TASHTEGO PASSING NEW LASHINGS AROUND IT.
+
+
+"Um, um, um. Stop that thunder! Plenty too much thunder up here. What's
+the use of thunder? Um, um, um. We don't want thunder; we want rum; give
+us a glass of rum. Um, um, um!"

@@ -1,0 +1,22 @@
+{
+  "book": {
+    "title": {{ .Title | jsonify }},
+    "author": {{ .Params.author | jsonify }},
+    "slug": {{ .File.ContentBaseName | jsonify }},
+    "summary": {{ .Params.summary | jsonify }},
+    "color": {{ .Params.color | jsonify }},
+    "coverImage": {{ .Params.coverImage | jsonify }}
+  },
+  "chapters": [
+    {{ range $i, $ch := .RegularPages.ByWeight }}
+    {{ if $i }},{{ end }}
+    {
+      "weight": {{ $ch.Weight }},
+      "title": {{ $ch.Title | jsonify }},
+      "content": {{ $ch.Content | jsonify }},
+      "summary": {{ $ch.Summary | jsonify }},
+      "slug": {{ $ch.File.ContentBaseName | jsonify }}
+    }
+    {{ end }}
+  ]
+}

@@ -1,0 +1,127 @@
+{{ define "main" }}
+{{ $book := .Parent }}
+{{ $audio := $book.Params.audio }}
+{{ $chapters := where (.Parent.RegularPages.ByWeight) "Weight" "gt" 0 }}
+{{ $explicit_urls := slice }}
+{{ if $audio.explicit_urls }}
+  {{ $urlsPath := printf "content/books/%s/audio/mp3_urls.txt" $book.File.ContentBaseName }}
+  {{ if fileExists $urlsPath }}
+    {{ $content := readFile $urlsPath }}
+    {{ $explicit_urls = split $content "\n" }}
+  {{ end }}
+{{ end }}
+<link rel="stylesheet" href="/css/turnjs-reader/reader.css">
+<style>
+  .audio-page { max-width: 840px; margin: 0 auto; padding: 2rem 1rem; }
+  .audio-header { text-align: center; margin-bottom: 2rem; }
+  .audio-header .music-icon { width: 80px; height: 80px; margin: 0 auto 1rem; color: var(--book-color, #8e44ad); }
+  .audio-header h1 { font-size: 1.8rem; margin: 0.5rem 0; }
+  .audio-header p { color: #666; font-size: 0.95rem; }
+  .audio-tagline { font-size: 1.05rem; line-height: 1.5; color: #444; max-width: 600px; margin: 0.5rem auto 0; font-weight: 500; }
+  .audio-chapter { padding: 0.75rem 1rem; border-bottom: 1px solid #eee; }
+  .audio-chapter:first-of-type { border-top: 1px solid #eee; }
+  .audio-chapter-header { display: flex; align-items: center; gap: 1rem; }
+  .audio-chapter .ch-num { font-weight: 700; color: var(--book-color, #8e44ad); min-width: 2.5rem; font-size: 0.9rem; }
+  .audio-chapter .ch-title { flex: 1; font-size: 0.9rem; font-weight: 600; }
+  .audio-chapter audio { width: 260px; height: 40px; }
+  .audio-chapter .ch-summary { font-size: 0.82rem; color: #666; line-height: 1.45; margin: 0.4rem 0 0 3.5rem; }
+  .speed-controls { display: inline-flex; gap: 4px; margin-left: 8px; vertical-align: middle; }
+  .speed-btn { padding: 2px 8px; font-size: 0.7rem; font-weight: 700; border: 1px solid #ccc; border-radius: 3px; background: #fff; cursor: pointer; color: #555; }
+  .speed-btn.active { background: var(--book-color, #8e44ad); color: #fff; border-color: var(--book-color, #8e44ad); }
+  .audio-footer { text-align: center; margin-top: 2rem; font-size: 0.85rem; color: #888; }
+  .audio-footer a { color: var(--book-color, #8e44ad); }
+  @media (max-width: 640px) {
+    .audio-chapter-header { flex-wrap: wrap; }
+    .audio-chapter audio { width: 100%; }
+    .audio-chapter .ch-summary { margin-left: 0; }
+  }
+</style>
+
+<div class="audio-page" style="--book-color: {{ $book.Params.color | default "#8e44ad" }}">
+  <div class="audio-header">
+    <div class="music-icon">
+      <svg viewBox="0 0 100 100" fill="none">
+        <circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="2" fill="none"/>
+        <polygon points="38,30 38,70 72,50" fill="currentColor" stroke="none"/>
+      </svg>
+    </div>
+    <h1>Listen to {{ $book.Title }}</h1>
+    <p class="audio-tagline">Hear Jane Austen's masterpiece narrated by {{ $audio.narrator }} — read along with the full text, chapter by chapter.</p>
+    <p>Free public domain recording from <a href="{{ $audio.librivox_url }}" target="_blank" rel="noopener">LibriVox</a></p>
+  </div>
+
+  {{ if $audio.single_file }}
+  <div class="audio-chapter">
+    <div class="audio-chapter-header">
+      <span class="ch-num">01</span>
+      <span class="ch-title">{{ $book.Title }}</span>
+      <audio controls preload="none" src="{{ $audio.mp3_prefix }}{{ $audio.mp3_suffix }}" class="audio-player"></audio>
+    </div>
+  </div>
+  {{ else if $audio.flat_list }}
+    {{ range $i, $url := $explicit_urls }}
+    {{ $url = $url | strings.TrimSpace }}
+    {{ if $url }}
+    <div class="audio-chapter">
+      <div class="audio-chapter-header">
+        <span class="ch-num">{{ printf "%02d" (add $i 1) }}</span>
+        <span class="ch-title">Track {{ add $i 1 }}</span>
+        <audio controls preload="none" src="{{ $url }}" class="audio-player"></audio>
+      </div>
+    </div>
+    {{ end }}
+    {{ end }}
+  {{ else if $audio.explicit_urls }}
+    {{ range $i, $ch := $chapters }}
+    <div class="audio-chapter">
+      <div class="audio-chapter-header">
+        <span class="ch-num">{{ printf "%02d" $ch.Weight }}</span>
+        <span class="ch-title">{{ $ch.Title }}</span>
+        {{ $url := index $explicit_urls $i | strings.TrimSpace }}
+        <audio controls preload="none" src="{{ $url }}" class="audio-player"></audio>
+      </div>
+      <div class="ch-summary">{{ $ch.Summary }}</div>
+    </div>
+    {{ end }}
+  {{ else }}
+    {{ range $ch := $chapters }}
+    <div class="audio-chapter">
+      <div class="audio-chapter-header">
+        <span class="ch-num">{{ printf "%02d" $ch.Weight }}</span>
+        <span class="ch-title">{{ $ch.Title }}</span>
+        <audio controls preload="none" src="{{ $audio.mp3_prefix }}{{ printf "%02d" $ch.Weight }}{{ $audio.mp3_suffix }}" class="audio-player"></audio>
+      </div>
+      <div class="ch-summary">{{ $ch.Summary }}</div>
+    </div>
+    {{ end }}
+  {{ end }}
+
+  <div class="audio-footer">
+    <a href="{{ $book.RelPermalink }}">&larr; Back to {{ $book.Title }}</a>
+  </div>
+</div>
+
+<script>
+(function() {
+  var players = document.querySelectorAll('.audio-player');
+  var speeds = [1, 1.25, 1.5, 2];
+  var activeSpeed = 1;
+
+  var bar = document.createElement('div');
+  bar.style.cssText = 'text-align:center;margin-bottom:1rem;';
+  bar.innerHTML = '<span style="font-size:0.85rem;color:#888;">Speed: </span>' +
+    speeds.map(function(s) {
+      return '<button class="speed-btn' + (s === activeSpeed ? ' active' : '') + '" data-speed="' + s + '">' + s + '×</button>';
+    }).join('');
+  bar.addEventListener('click', function(e) {
+    var btn = e.target.closest('.speed-btn');
+    if (!btn) return;
+    var speed = parseFloat(btn.getAttribute('data-speed'));
+    bar.querySelectorAll('.speed-btn').forEach(function(b) { b.classList.remove('active'); });
+    btn.classList.add('active');
+    players.forEach(function(p) { p.playbackRate = speed; });
+  });
+  document.querySelector('.audio-header').after(bar);
+})();
+</script>
+{{ end }}

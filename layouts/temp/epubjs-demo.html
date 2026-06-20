@@ -1,0 +1,418 @@
+{{ define "main" }}
+<style>
+  .hextra-max-content-width, .hextra-max-page-width { max-width: 100% !important; }
+  article.hextra-w-full { max-width: 100% !important; min-height: auto !important; }
+  #content { padding: 0 !important; margin: 0 !important; }
+  article .hx\:mx-auto { margin-left: 0 !important; margin-right: 0 !important; }
+  .hextra-toc, .hextra-sidebar-placeholder, [class*=hextra-sidebar], [class*=hextra-toc] { display: none !important; }
+  aside { display: none !important; }
+  article { display: block !important; }
+  main#content { max-width: 100% !important; min-width: 0 !important; }
+  .hextra-footer { display: none !important; }
+
+  * { margin: 0; padding: 0; box-sizing: border-box; }
+
+  body { background: #2c2c2c; font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; }
+
+  #book-metadata {
+    display: none;
+    text-align: center;
+    padding: 80px 20px;
+    color: #ccc;
+  }
+  #book-metadata img { max-width: 200px; margin: 0 auto 20px; display: block; box-shadow: 0 4px 20px rgba(0,0,0,0.3); }
+  #book-metadata h1 { font-size: 1.8em; margin-bottom: 8px; color: #fff; }
+  #book-metadata p { font-size: 1.1em; color: #aaa; }
+
+  #viewer {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 100;
+    background: #f5f3ef;
+  }
+
+  #viewer iframe {
+    border: none;
+  }
+
+  /* Page flip animation */
+  #flip-overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    z-index: 250;
+    display: none;
+    pointer-events: none;
+    perspective: 1200px;
+  }
+  #flip-overlay-inner {
+    width: 100%;
+    height: 100%;
+    background: #f5f3ef;
+    backface-visibility: hidden;
+    transform-style: preserve-3d;
+    transition: transform 0.45s ease-in-out;
+  }
+  #flip-overlay.flipping-next #flip-overlay-inner {
+    transform-origin: left center;
+    transform: rotateY(-180deg);
+  }
+  #flip-overlay.flipping-prev #flip-overlay-inner {
+    transform-origin: right center;
+    transform: rotateY(180deg);
+  }
+
+  /* Navigation arrows */
+    position: fixed;
+    top: 50%;
+    transform: translateY(-50%);
+    z-index: 200;
+    width: 50px;
+    height: 50px;
+    border: none;
+    border-radius: 50%;
+    background: rgba(44,44,44,0.7);
+    color: #fff;
+    font-size: 28px;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s, opacity 0.2s;
+    opacity: 0.4;
+    line-height: 1;
+  }
+  .nav-arrow:hover { background: rgba(44,44,44,0.95); opacity: 1; }
+  .nav-arrow.prev { left: 15px; }
+  .nav-arrow.next { right: 15px; }
+
+  /* Top bar */
+  #topbar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+    z-index: 300;
+    background: linear-gradient(to bottom, rgba(44,44,44,0.85), transparent);
+    padding: 12px 20px;
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    opacity: 0;
+    transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  #topbar.visible {
+    opacity: 1;
+    pointer-events: auto;
+  }
+  #topbar .book-title {
+    color: #ddd;
+    font-size: 14px;
+    font-weight: 600;
+    flex: 1;
+  }
+  #topbar .chapter-title {
+    color: #999;
+    font-size: 13px;
+    flex: 2;
+    text-align: center;
+  }
+  #topbar .location {
+    color: #aaa;
+    font-size: 12px;
+    white-space: nowrap;
+  }
+
+  /* TOC button */
+  #toc-btn {
+    background: none;
+    border: 1px solid rgba(255,255,255,0.3);
+    color: #ddd;
+    padding: 4px 12px;
+    border-radius: 4px;
+    font-size: 13px;
+    cursor: pointer;
+    transition: background 0.2s;
+  }
+  #toc-btn:hover { background: rgba(255,255,255,0.1); }
+
+  /* TOC panel */
+  #toc-panel {
+    position: fixed;
+    top: 0;
+    left: -320px;
+    width: 300px;
+    height: 100%;
+    z-index: 400;
+    background: #1a1a2e;
+    color: #c0c0c0;
+    overflow-y: auto;
+    transition: left 0.3s ease;
+    padding: 20px;
+    box-shadow: 2px 0 15px rgba(0,0,0,0.3);
+  }
+  #toc-panel.open { left: 0; }
+  #toc-panel h3 {
+    font-size: 1.2em;
+    color: #e0e0e0;
+    margin-bottom: 20px;
+    padding-bottom: 10px;
+    border-bottom: 1px solid rgba(255,255,255,0.1);
+  }
+  #toc-panel ul { list-style: none; }
+  #toc-panel li { margin-bottom: 4px; }
+  #toc-panel a {
+    display: block;
+    color: #a0a0c0;
+    text-decoration: none;
+    padding: 6px 10px;
+    border-radius: 4px;
+    font-size: 14px;
+    transition: background 0.2s, color 0.2s;
+    cursor: pointer;
+  }
+  #toc-panel a:hover, #toc-panel a.active {
+    background: rgba(255,255,255,0.08);
+    color: #fff;
+  }
+  #toc-panel a.active {
+    border-left: 3px solid #4a90d9;
+  }
+
+  /* Loading indicator */
+  #loading {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    background: #2c2c2c;
+    z-index: 500;
+    color: #aaa;
+    font-size: 16px;
+    transition: opacity 0.5s;
+  }
+  #loading.hidden { opacity: 0; pointer-events: none; }
+
+  /* Overlay for TOC */
+  #overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 350;
+    background: rgba(0,0,0,0.4);
+    opacity: 0;
+    pointer-events: none;
+    transition: opacity 0.3s;
+  }
+  #overlay.visible { opacity: 1; pointer-events: auto; }
+
+  @media screen and (max-width: 768px) {
+    .nav-arrow { width: 40px; height: 40px; font-size: 22px; }
+    .nav-arrow.prev { left: 5px; }
+    .nav-arrow.next { right: 5px; }
+    #topbar { padding: 8px 12px; }
+    #topbar .chapter-title { display: none; }
+    #toc-panel { width: 260px; left: -280px; }
+  }
+</style>
+
+<div id="loading">Loading book…</div>
+
+<div id="overlay"></div>
+
+<div id="flip-overlay"><div id="flip-overlay-inner"></div></div>
+
+<div id="toc-panel">
+  <h3>Table of Contents</h3>
+  <nav id="toc"></nav>
+</div>
+
+<div id="topbar">
+  <button id="toc-btn">☰ TOC</button>
+  <span class="book-title" id="topbar-title">Loading…</span>
+  <span class="chapter-title" id="topbar-chapter"></span>
+  <span class="location" id="topbar-location"></span>
+</div>
+
+<button class="nav-arrow prev" id="prev">‹</button>
+<button class="nav-arrow next" id="next">›</button>
+
+<div id="viewer"></div>
+
+<script src="/js/epubjs/jszip.min.js"></script>
+<script src="/js/epubjs/epub.min.js"></script>
+<script>
+(function() {
+  var bookUrl = '/epub/declaration-of-independence.epub';
+  var book = ePub(bookUrl);
+  var rendition;
+
+  var viewer = document.getElementById('viewer');
+  var loading = document.getElementById('loading');
+  var prevBtn = document.getElementById('prev');
+  var nextBtn = document.getElementById('next');
+  var tocBtn = document.getElementById('toc-btn');
+  var tocPanel = document.getElementById('toc-panel');
+  var overlay = document.getElementById('overlay');
+  var topbar = document.getElementById('topbar');
+  var topbarTitle = document.getElementById('topbar-title');
+  var topbarChapter = document.getElementById('topbar-chapter');
+  var topbarLocation = document.getElementById('topbar-location');
+  var tocNav = document.getElementById('toc');
+  var flipOverlay = document.getElementById('flip-overlay');
+  var topbarTimeout = null;
+  var isFlipping = false;
+
+  function navigateWithFlip(direction) {
+    if (isFlipping) return;
+    isFlipping = true;
+
+    flipOverlay.style.display = 'block';
+    flipOverlay.className = '';
+    flipOverlay.offsetHeight;
+
+    if (direction === 'next') {
+      flipOverlay.classList.add('flipping-next');
+    } else {
+      flipOverlay.classList.add('flipping-prev');
+    }
+
+    setTimeout(function() {
+      if (direction === 'next') rendition.next();
+      else rendition.prev();
+    }, 200);
+
+    setTimeout(function() {
+      flipOverlay.style.display = 'none';
+      flipOverlay.className = '';
+      isFlipping = false;
+      showTopbar();
+    }, 500);
+  }
+
+  // Show topbar briefly on any interaction
+  function showTopbar() {
+    topbar.classList.add('visible');
+    clearTimeout(topbarTimeout);
+    topbarTimeout = setTimeout(function() {
+      topbar.classList.remove('visible');
+    }, 3000);
+  }
+
+  document.addEventListener('mousemove', showTopbar);
+  document.addEventListener('touchstart', showTopbar);
+
+  rendition = book.renderTo(viewer, {
+    width: '100%',
+    height: '100%',
+    spread: 'auto',
+    flow: 'paginated',
+    minSpreadWidth: 800
+  });
+
+  // Display first section
+  rendition.display();
+
+  // Hide loading
+  book.ready.then(function() {
+    loading.classList.add('hidden');
+  });
+
+  // Book metadata
+  book.loaded.metadata.then(function(meta) {
+    topbarTitle.textContent = meta.title;
+  });
+
+  // Set up TOC
+  book.loaded.navigation.then(function(toc) {
+    function buildToc(parent, items) {
+      items.forEach(function(item) {
+        var li = document.createElement('li');
+        var a = document.createElement('a');
+        a.textContent = item.label;
+        a.href = item.href;
+        a.addEventListener('click', function(e) {
+          e.preventDefault();
+          rendition.display(item.href);
+          tocPanel.classList.remove('open');
+          overlay.classList.remove('visible');
+          showTopbar();
+        });
+        li.appendChild(a);
+        parent.appendChild(li);
+        if (item.subitems && item.subitems.length) {
+          var subUl = document.createElement('ul');
+          subUl.style.paddingLeft = '16px';
+          buildToc(subUl, item.subitems);
+          li.appendChild(subUl);
+        }
+      });
+    }
+    buildToc(tocNav, toc);
+  });
+
+  // Navigation buttons
+  prevBtn.addEventListener('click', function() {
+    navigateWithFlip('prev');
+  });
+  nextBtn.addEventListener('click', function() {
+    navigateWithFlip('next');
+  });
+
+  // TOC toggle
+  tocBtn.addEventListener('click', function() {
+    var open = !tocPanel.classList.contains('open');
+    tocPanel.classList.toggle('open', open);
+    overlay.classList.toggle('visible', open);
+  });
+  overlay.addEventListener('click', function() {
+    tocPanel.classList.remove('open');
+    overlay.classList.remove('visible');
+  });
+
+  // Keyboard navigation
+  document.addEventListener('keydown', function(e) {
+    if (tocPanel.classList.contains('open')) {
+      if (e.key === 'Escape') {
+        tocPanel.classList.remove('open');
+        overlay.classList.remove('visible');
+      }
+      return;
+    }
+    if (e.key === 'ArrowLeft') { navigateWithFlip('prev'); }
+    else if (e.key === 'ArrowRight') { navigateWithFlip('next'); }
+  });
+
+  // Relocated event — update TOC active state and chapter title
+  rendition.on('relocated', function(location) {
+    if (!book) return;
+    var section = location && location.start && location.start.href;
+    if (section) {
+      var nav = book.navigation.get(section);
+      if (nav) {
+        topbarChapter.textContent = nav.label;
+        // Highlight active TOC item
+        tocNav.querySelectorAll('a').forEach(function(a) {
+          a.classList.toggle('active', a.getAttribute('href') === section);
+        });
+      }
+      topbarLocation.textContent = location.start.displayed.page + '/' + location.start.displayed.total;
+    }
+    showTopbar();
+  });
+
+  // Resize handling
+  window.addEventListener('resize', function() {
+    if (rendition) {
+      rendition.resize();
+    }
+  });
+})();
+</script>
+{{ end }}

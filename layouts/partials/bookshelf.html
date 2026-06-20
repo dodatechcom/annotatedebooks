@@ -1,0 +1,43 @@
+{{ with .Site.GetPage "/books" }}
+{{ $books := .Pages.ByWeight }}
+{{ if $books }}
+<link rel="stylesheet" href="/css/bookshelf.css">
+<div class="bookshelf-section">
+  <h2>Featured Books</h2>
+  <div class="bookshelf">
+    {{ $len := len $books }}
+    {{ $cols := 12 }}
+    {{ $rows := div (add $len (sub $cols 1)) $cols }}
+    {{ range $ri := seq $rows }}
+    {{ $offset := mul (sub $ri 1) $cols }}
+    <div class="shelf-row">
+      {{ range $bi := seq 0 (sub $cols 1) }}
+      {{ $idx := add $offset $bi }}
+      {{ if lt $idx $len }}
+      {{ $book := index $books $idx }}
+      {{ $c := $book.Params.color | default "#4a90d9" }}
+      <a href="{{ $book.RelPermalink }}" class="book">
+        {{ if $book.Params.coverImage }}
+        <div class="book-cover-img" style="background-image:url({{ $book.Params.coverImage }});background-size:cover;background-position:center;"></div>
+        {{ else }}
+        <svg viewBox="0 0 200 300" xmlns="http://www.w3.org/2000/svg" style="background: {{ $c }};">
+          <defs>
+            <linearGradient id="sg{{ $book.Weight }}" x1="0" y1="0" x2="0" y2="1">
+              <stop offset="0%" stop-color="rgba(255,255,255,0.08)"/>
+              <stop offset="100%" stop-color="rgba(0,0,0,0.12)"/>
+            </linearGradient>
+          </defs>
+          <rect width="200" height="300" fill="url(#sg{{ $book.Weight }})"/>
+        </svg>
+        {{ end }}
+      </a>
+      {{ else }}
+      <div class="book book-placeholder"></div>
+      {{ end }}
+      {{ end }}
+    </div>
+    {{ end }}
+  </div>
+</div>
+{{ end }}
+{{ end }}

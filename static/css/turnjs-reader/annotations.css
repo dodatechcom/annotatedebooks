@@ -1,0 +1,228 @@
+/* --- Annotations Section --- */
+.annotations-section {
+  margin-top: 36px;
+  padding-top: 24px;
+  border-top: 2px solid #e8e0d0;
+}
+
+.ann-toggle {
+  display: block;
+  width: 100%;
+  padding: 12px 16px;
+  background: #faf6f0;
+  border: 1px solid #e8e0d0;
+  border-radius: 6px;
+  color: #5a4a3a;
+  font-size: 14px;
+  font-weight: 600;
+  cursor: pointer;
+  text-align: left;
+  transition: background 0.2s;
+}
+
+.ann-toggle:hover {
+  background: #f0e8d8;
+}
+
+.annotations-body {
+  display: none;
+  margin-top: 16px;
+  padding: 20px 24px;
+  background: #fdfcf8;
+  border: 1px solid #e8e0d0;
+  border-radius: 6px;
+  border-left: 4px solid #8b7355;
+}
+
+.annotations-body.visible {
+  display: block;
+}
+
+.annotations-body h3 {
+  font-size: 13px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+  color: #8b7355;
+  margin: 24px 0 8px;
+}
+
+.annotations-body h3:first-child {
+  margin-top: 0;
+}
+
+.annotations-body h4 {
+  font-size: 15px;
+  font-weight: 600;
+  color: #3a2a1a;
+  margin: 16px 0 6px;
+}
+
+.annotations-body p {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.7;
+  color: #4a3a2a;
+  margin: 0 0 12px;
+}
+
+.annotations-body blockquote {
+  margin: 12px 0;
+  padding: 8px 16px;
+  background: #f5f0e8;
+  border-left: 3px solid #8b7355;
+  font-style: italic;
+  color: #5a4a3a;
+}
+
+.annotations-body blockquote p {
+  font-size: 13px;
+  margin: 0;
+}
+
+.annotations-body ul {
+  padding-left: 20px;
+  margin: 8px 0 12px;
+}
+
+.annotations-body li {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #4a3a2a;
+  margin-bottom: 4px;
+}
+
+.annotations-body .ann-footnote {
+  font-size: 12px;
+  color: #8b7355;
+  margin-top: 16px;
+  padding-top: 12px;
+  border-top: 1px solid #e8e0d0;
+}
+
+/* Annotated edition badge in topbar */
+.tb-btn-active {
+  color: #8b7355 !important;
+  border-color: #8b7355 !important;
+  background: rgba(139, 115, 85, 0.08);
+}
+
+/* --- Purchase CTA --- */
+.purchase-cta {
+  margin-top: 40px;
+  padding: 28px 32px;
+  background: linear-gradient(135deg, #faf6f0 0%, #f0e8d8 100%);
+  border: 2px solid #8b7355;
+  border-radius: 10px;
+  text-align: center;
+}
+
+.purchase-cta h3 {
+  font-size: 18px;
+  font-weight: 700;
+  color: #3a2a1a;
+  margin: 0 0 10px;
+}
+
+.purchase-cta p {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  color: #5a4a3a;
+  margin: 0 0 18px;
+  max-width: 480px;
+  margin-left: auto;
+  margin-right: auto;
+}
+
+.purchase-btn {
+  display: inline-block;
+  padding: 14px 36px;
+  background: #8b7355;
+  color: #fff;
+  font-size: 16px;
+  font-weight: 700;
+  text-decoration: none;
+  border-radius: 8px;
+  transition: background 0.2s, transform 0.15s;
+}
+
+.purchase-btn:hover {
+  background: #6b5a3a;
+  transform: translateY(-1px);
+}
+
+/* Dark mode */
+.dark .purchase-cta {
+  background: linear-gradient(135deg, #2a2824 0%, #3a352a 100%);
+  border-color: #8b7355;
+}
+
+.dark .purchase-cta h3 {
+  color: #d8c8b0;
+}
+
+.dark .purchase-cta p {
+  color: #b8a890;
+}
+
+.dark .purchase-btn {
+  background: #8b7355;
+  color: #fff;
+}
+
+.dark .purchase-btn:hover {
+  background: #a89070;
+}
+
+/* Dark mode */
+.dark .annotations-section {
+  border-top-color: #3a352a;
+}
+
+.dark .ann-toggle {
+  background: #2a2824;
+  border-color: #3a352a;
+  color: #c8b8a0;
+}
+
+.dark .ann-toggle:hover {
+  background: #3a352a;
+}
+
+.dark .annotations-body {
+  background: #22201c;
+  border-color: #3a352a;
+  border-left-color: #8b7355;
+}
+
+.dark .annotations-body h3 {
+  color: #a89070;
+}
+
+.dark .annotations-body h4 {
+  color: #d8c8b0;
+}
+
+.dark .annotations-body p {
+  color: #b8a890;
+}
+
+.dark .annotations-body blockquote {
+  background: #2a2824;
+  border-left-color: #8b7355;
+}
+
+.dark .annotations-body blockquote p {
+  color: #b8a890;
+}
+
+.dark .annotations-body li {
+  color: #b8a890;
+}
+
+.dark .annotations-body .ann-footnote {
+  color: #a89070;
+  border-top-color: #3a352a;
+}

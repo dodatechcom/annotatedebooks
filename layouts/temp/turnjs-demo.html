@@ -1,0 +1,232 @@
+{{ define "main" }}
+<style>
+  .hextra-max-content-width, .hextra-max-page-width {
+    max-width: 100% !important;
+  }
+  article.hextra-w-full {
+    max-width: 100% !important;
+    min-height: auto !important;
+  }
+  #content {
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+  article .hx\\:mx-auto {
+    margin-left: 0 !important;
+    margin-right: 0 !important;
+  }
+  .hextra-toc, .hextra-sidebar-placeholder, 
+  [class*="hextra-sidebar"], [class*="hextra-toc"] {
+    display: none !important;
+  }
+  aside { display: none !important; }
+  article { display: block !important; }
+  main#content { max-width: 100% !important; min-width: 0 !important; }
+  
+  body {
+    background: #f0f0f0;
+  }
+  
+  #flipbook-container {
+    margin: 30px auto;
+    max-width: 1020px;
+    padding: 0 20px;
+  }
+  
+  #flipbook {
+    width: 1000px;
+    height: 600px;
+    margin: 0 auto;
+    background: #fff;
+    box-shadow: 0 2px 20px rgba(0,0,0,0.15);
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  
+  #flipbook .page {
+    background: #faf9f6;
+    padding: 35px 40px;
+    box-sizing: border-box;
+    overflow: hidden;
+  }
+  
+  #flipbook .page-inner {
+    height: 100%;
+    overflow-y: auto;
+    padding-right: 5px;
+  }
+  
+  #flipbook .page-inner::-webkit-scrollbar {
+    width: 4px;
+  }
+  #flipbook .page-inner::-webkit-scrollbar-thumb {
+    background: #ccc;
+    border-radius: 2px;
+  }
+  
+  #flipbook h2 {
+    font-size: 1.35em;
+    color: #1a5276;
+    border-bottom: 2px solid #1a5276;
+    padding-bottom: 8px;
+    margin: 0 0 18px;
+    font-weight: 600;
+  }
+  
+  #flipbook p {
+    font-size: 13px;
+    line-height: 1.7;
+    color: #333;
+    margin: 0 0 0.75em;
+  }
+  
+  #flipbook strong, #flipbook b {
+    color: #222;
+  }
+  
+  #flipbook ul, #flipbook ol {
+    font-size: 13px;
+    line-height: 1.6;
+    padding-left: 20px;
+  }
+  
+  #flipbook li {
+    margin-bottom: 0.4em;
+  }
+  
+  #flipbook img {
+    max-width: 100%;
+    height: auto;
+    display: block;
+    margin: 12px auto;
+    border-radius: 3px;
+  }
+  
+  #flipbook blockquote {
+    font-size: 13px;
+    border-left: 3px solid #1a5276;
+    padding: 8px 16px;
+    margin: 12px 0;
+    background: #f0f0ee;
+    color: #444;
+  }
+  
+  #flipbook blockquote p {
+    margin: 0;
+  }
+  
+  #flipbook hr {
+    border: none;
+    border-top: 1px solid #ddd;
+    margin: 15px 0;
+  }
+  
+  #flipbook table {
+    font-size: 12px;
+    width: 100%;
+    border-collapse: collapse;
+    margin: 10px 0;
+  }
+  #flipbook th, #flipbook td {
+    border: 1px solid #ddd;
+    padding: 6px 10px;
+    text-align: left;
+  }
+  #flipbook th {
+    background: #f0f0ee;
+    font-weight: 600;
+  }
+  
+  #flipbook h3 {
+    font-size: 1.1em;
+    color: #1a5276;
+    margin: 16px 0 8px;
+  }
+  
+  .demo-info {
+    text-align: center;
+    font-size: 14px;
+    color: #666;
+    margin: 0 auto 30px;
+    max-width: 1000px;
+    line-height: 1.6;
+  }
+  
+  .demo-info code {
+    background: #e8e8e8;
+    padding: 2px 6px;
+    border-radius: 3px;
+    font-size: 13px;
+  }
+</style>
+
+<div class="demo-info">
+  <strong>Turn.js v4 Demo</strong> — The Declaration of Independence<br>
+  <small>Click corners or drag to flip. Arrow keys navigate. Each page scrolls independently.<br>
+  <em>Note: Turn.js uses fixed page dimensions — content scrolls within each page.</em></small>
+</div>
+
+<div id="flipbook-container">
+  <div id="flipbook">
+    {{ $doi := .Site.GetPage "/books/declaration-of-independence" }}
+    {{ range $doi.RegularPages.ByWeight }}
+    <div class="page">
+      <div class="page-inner">
+        <h2>{{ .Title }}</h2>
+        {{ .Content }}
+      </div>
+    </div>
+    {{ end }}
+  </div>
+</div>
+
+<script src="https://ajax.googleapis.com/ajax/libs/jquery/1.8.3/jquery.min.js"></script>
+<script>window.jQuery || document.write('<script src="/js/jquery-1.8.3.min.js">\x3C/script>')</script>
+<script src="/js/turnjs/turn.min.js"></script>
+<script>
+(function() {
+  var flipbook = $('#flipbook');
+  var initialized = false;
+
+  function initFlipbook() {
+    if (initialized) return;
+    var width = Math.min(1000, flipbook.width());
+    var height = Math.round(width * 0.6);
+    
+    flipbook.turn({
+      width: width,
+      height: height,
+      autoCenter: true,
+      gradients: true,
+      display: 'single',
+      elevation: 50
+    });
+    initialized = true;
+  }
+
+  // Initialize on DOM ready
+  $(initFlipbook);
+
+  // Re-init on window resize (debounced)
+  var resizeTimer;
+  $(window).on('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+      if (flipbook.turn('is') && flipbook.turn('destroy')) {
+        initialized = false;
+        initFlipbook();
+      }
+    }, 250);
+  });
+
+  // Keyboard navigation
+  $(document).on('keydown', function(e) {
+    if (e.key === 'ArrowLeft') {
+      flipbook.turn('previous');
+    } else if (e.key === 'ArrowRight') {
+      flipbook.turn('next');
+    }
+  });
+})();
+</script>
+{{ end }}

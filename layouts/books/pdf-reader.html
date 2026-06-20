@@ -1,0 +1,149 @@
+{{ define "main" }}
+{{ $book := .Parent }}
+{{ $pdfPath := $book.Params.pdf }}
+{{ $buyUrl := "" }}
+{{ with index $book.Params.editions 0 }}{{ $buyUrl = .buy_url }}{{ end }}
+
+<link rel="stylesheet" href="/css/flipbook-viewer/reader.css">
+
+<div id="reader-wrapper">
+  <div id="flipbook-container"></div>
+  <div id="loading-el">Loading book...</div>
+</div>
+
+<div id="topbar">
+  <a href="{{ $book.RelPermalink }}" class="close-btn" aria-label="Close reader">✕</a>
+  <span class="book-title">{{ $book.Title }}</span>
+  <span class="page-num" id="page-num"></span>
+</div>
+
+<div class="nav-zone prev" id="zone-prev" title="Previous page"></div>
+<div class="nav-zone next" id="zone-next" title="Next page"></div>
+
+<div id="purchase-overlay">
+  <div id="purchase-box">
+    <h2>Preview Complete</h2>
+    <p>You've reached the end of the free preview. Purchase the full book to continue reading.</p>
+    <a href="{{ $buyUrl }}" class="buy-btn" target="_blank" rel="noopener">Buy Full Book</a>
+    <button class="close-overlay-btn" id="close-overlay">Continue Browsing</button>
+  </div>
+</div>
+
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.min.js"></script>
+<script src="/js/flipbook-viewer/flipbook-viewer.js"></script>
+<script src="/js/flipbook-viewer/pdf-book.js"></script>
+<script>
+(function() {
+  var pdfPath = '{{ $pdfPath }}';
+  if (!pdfPath) {
+    document.getElementById('loading-el').textContent = 'No PDF file configured for this book.';
+    return;
+  }
+
+  pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.10.377/pdf.worker.min.js';
+
+  var loadingEl = document.getElementById('loading-el');
+  var topbar = document.getElementById('topbar');
+  var pageNumEl = document.getElementById('page-num');
+  var hideTimer = null;
+  var viewer = null;
+  var lastSeenPage = 0;
+
+  function showTopbar() {
+    topbar.classList.add('visible');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(function() { topbar.classList.remove('visible'); }, 3000);
+  }
+
+  function getContainerSize() {
+    var w = window.innerWidth;
+    var h = window.innerHeight;
+    var maxW = w * 0.85;
+    var maxH = h * 0.85;
+    return { width: Math.floor(maxW), height: Math.floor(maxH) };
+  }
+
+  PdfBook.init(pdfPath, function(err, book) {
+    if (err) {
+      loadingEl.textContent = 'Failed to load PDF: ' + err;
+      return;
+    }
+
+    var sz = getContainerSize();
+    var container = document.getElementById('flipbook-container');
+
+    flipbook.init(book, container, {
+      width: sz.width,
+      height: sz.height,
+      backgroundColor: '#2c2c2c',
+      boxColor: '#2c2c2c',
+    }, function(err, v) {
+      if (err) {
+        loadingEl.textContent = 'Failed to initialize viewer: ' + err;
+        return;
+      }
+      viewer = v;
+      loadingEl.style.display = 'none';
+
+      updatePageDisplay();
+      showTopbar();
+
+      setTimeout(function() { viewer.zoom(); }, 400);
+
+      viewer.on('seen', function(n) {
+        lastSeenPage = n;
+        updatePageDisplay();
+        showTopbar();
+
+        if (n >= viewer.page_count - 1) {
+          setTimeout(function() {
+            document.getElementById('purchase-overlay').classList.add('visible');
+          }, 800);
+        }
+      });
+    });
+  });
+
+  function updatePageDisplay() {
+    if (!viewer) return;
+    var shown = lastSeenPage || 0;
+    pageNumEl.textContent = 'Page ' + shown + ' of ' + viewer.page_count;
+  }
+
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      var po = document.getElementById('purchase-overlay');
+      if (po.classList.contains('visible')) {
+        po.classList.remove('visible');
+        return;
+      }
+    }
+    if (!viewer) return;
+    if (e.key === 'ArrowLeft') { e.preventDefault(); viewer.flip_back(); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); viewer.flip_forward(); }
+  });
+
+  document.getElementById('zone-prev').addEventListener('click', function() {
+    if (viewer) viewer.flip_back();
+  });
+  document.getElementById('zone-next').addEventListener('click', function() {
+    if (viewer) viewer.flip_forward();
+  });
+
+  document.getElementById('close-overlay').addEventListener('click', function() {
+    document.getElementById('purchase-overlay').classList.remove('visible');
+  });
+
+  document.addEventListener('mousemove', showTopbar);
+  document.addEventListener('touchstart', showTopbar);
+
+  var resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+      location.reload();
+    }, 400);
+  });
+})();
+</script>
+{{ end }}

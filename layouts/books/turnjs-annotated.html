@@ -1,0 +1,184 @@
+{{ define "main" }}
+{{ $book := .Parent }}
+{{ $chapters := .Parent.RegularPages.ByWeight }}
+{{ $annotations := .Pages.ByWeight }}
+{{ $totalChapters := len $chapters }}
+{{ $buyURL := .Params.buy_url }}
+{{ $epubURL := .Params.epub_url }}
+{{ $previewCount := len $annotations }}
+
+<link rel="stylesheet" href="/css/turnjs-reader/reader.css">
+<link rel="stylesheet" href="/css/turnjs-reader/annotations.css">
+
+<div id="topbar">
+  <a href="{{ $book.RelPermalink }}" class="tb-back">&larr;</a>
+  <span class="tb-title">{{ $book.Title }} — Annotated Edition</span>
+  <button class="tb-btn tb-btn-active" id="tb-ann-btn" title="Toggle annotations">📖 Annotations</button>
+  <span class="tb-divider"></span>
+  <button class="tb-btn" id="tb-font-btn">Aa</button>
+  <span class="tb-divider"></span>
+  <button class="tb-btn" id="tb-toc-btn" title="Toggle table of contents">☰</button>
+</div>
+
+<div id="app" class="content-font-md">
+  <!-- Left Sidebar: TOC -->
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <a href="{{ $book.RelPermalink }}" class="close-btn"><span>&larr; Book</span></a>
+      <h1>{{ $book.Title }}</h1>
+      <div class="meta">{{ $totalChapters }} chapters · Annotated Edition</div>
+      <button id="sidebar-toggle" title="Toggle sidebar">☰</button>
+    </div>
+    <nav id="toc">
+      {{ range $i, $ch := $chapters }}
+      <a data-chapter="{{ $i }}" class="toc-link{{ if eq $i 0 }} active{{ end }}">{{ $ch.Title }}</a>
+      {{ end }}
+    </nav>
+  </div>
+
+  <!-- Center: Chapter Content + Annotations -->
+  <div id="content">
+    {{ range $i, $ch := $chapters }}
+    {{ $ann := index $annotations $i }}
+    <div class="chapter-content{{ if eq $i 0 }} active{{ end }}" data-chapter="{{ $i }}">
+      <div class="chapter-text">
+        {{ $ch.Content }}
+      </div>
+
+      {{ with $ann }}
+      <div class="annotations-section">
+        <button class="ann-toggle" data-chapter="{{ $i }}">📖 Show Annotations for This Chapter</button>
+        <div class="annotations-body" data-chapter="{{ $i }}">
+          {{ .Content }}
+        </div>
+      </div>
+      {{ end }}
+
+      {{ if and (eq (add $i 1) $previewCount) $buyURL }}
+      <div class="purchase-cta">
+        <h3>📖 Full Annotated Edition</h3>
+        <p>This preview includes chapter{{ if gt $previewCount 1 }}s 1–{{ $previewCount }}{{ else }} 1{{ end }}. Get the complete annotated edition with all {{ $totalChapters }} chapters plus chapter-by-chapter commentary, historical context, and literary analysis.</p>
+        <a href="{{ $buyURL }}" class="purchase-btn" target="_blank" rel="noopener">Buy Full EPUB — $4.99</a>
+      </div>
+      {{ end }}
+
+      <nav class="chapter-nav">
+        {{ if gt $i 0 }}<a data-chapter="{{ sub $i 1 }}" class="nav-link prev">&larr; Previous Chapter</a>{{ end }}
+        {{ if lt (add $i 1) $totalChapters }}<a data-chapter="{{ add $i 1 }}" class="nav-link next">Next Chapter &rarr;</a>{{ end }}
+      </nav>
+    </div>
+    {{ end }}
+  </div>
+</div>
+
+<script>
+(function() {
+  var tocLinks = document.querySelectorAll('.toc-link');
+  var sections = document.querySelectorAll('.chapter-content');
+  var sidebar = document.getElementById('sidebar');
+  var topbar = document.getElementById('topbar');
+  var content = document.getElementById('content');
+  var hideTimer = null;
+  var totalChapters = sections.length;
+  var annVisible = true;
+
+  var storageKey = 'reader-ann-' + window.location.pathname.replace(/\//g, '-');
+
+  function showChapter(idx, save) {
+    if (idx < 0 || idx >= totalChapters) return;
+    tocLinks.forEach(function(link, i) {
+      link.classList.toggle('active', i === idx);
+    });
+    sections.forEach(function(section, i) {
+      section.classList.toggle('active', i === idx);
+    });
+    content.scrollTop = 0;
+    history.replaceState(null, '', '#chapter-' + (idx + 1));
+    if (save !== false) {
+      try { localStorage.setItem(storageKey, idx); } catch(e) {}
+    }
+  }
+
+  function toggleAnnotations() {
+    annVisible = !annVisible;
+    document.querySelectorAll('.annotations-body').forEach(function(el) {
+      el.classList.toggle('visible', annVisible);
+    });
+    document.querySelectorAll('.ann-toggle').forEach(function(el) {
+      el.textContent = annVisible ? '📖 Hide Annotations' : '📖 Show Annotations for This Chapter';
+    });
+    document.getElementById('tb-ann-btn').classList.toggle('tb-btn-active', annVisible);
+    try { localStorage.setItem('ann-vis', annVisible ? '1' : '0'); } catch(e) {}
+  }
+
+  var startIdx = 0;
+  var hashMatch = window.location.hash.match(/^#chapter-(\d+)$/);
+  if (hashMatch) {
+    var h = parseInt(hashMatch[1], 10) - 1;
+    if (h >= 0 && h < totalChapters) startIdx = h;
+  } else {
+    try {
+      var saved = localStorage.getItem(storageKey);
+      if (saved !== null) startIdx = parseInt(saved, 10);
+      if (isNaN(startIdx) || startIdx < 0 || startIdx >= totalChapters) startIdx = 0;
+    } catch(e) {}
+  }
+  showChapter(startIdx, false);
+
+  try {
+    var savedAnn = localStorage.getItem('ann-vis');
+    if (savedAnn === '0') { annVisible = false; }
+  } catch(e) {}
+  document.querySelectorAll('.annotations-body').forEach(function(el) {
+    el.classList.toggle('visible', annVisible);
+  });
+  document.querySelectorAll('.ann-toggle').forEach(function(el) {
+    el.textContent = annVisible ? '📖 Hide Annotations' : '📖 Show Annotations for This Chapter';
+  });
+  document.getElementById('tb-ann-btn').classList.toggle('tb-btn-active', annVisible);
+
+  document.getElementById('sidebar-toggle').addEventListener('click', function() {
+    sidebar.classList.toggle('collapsed');
+  });
+  document.getElementById('tb-toc-btn').addEventListener('click', function() {
+    sidebar.classList.toggle('collapsed');
+  });
+  document.getElementById('tb-ann-btn').addEventListener('click', toggleAnnotations);
+  document.querySelectorAll('.ann-toggle').forEach(function(el) {
+    el.addEventListener('click', toggleAnnotations);
+  });
+
+  var fontSizes = ['content-font-sm', 'content-font-md', 'content-font-lg'];
+  var fontIdx = 1;
+  document.getElementById('tb-font-btn').addEventListener('click', function() {
+    var app = document.getElementById('app');
+    fontSizes.forEach(function(c) { app.classList.remove(c); });
+    fontIdx = (fontIdx + 1) % fontSizes.length;
+    app.classList.add(fontSizes[fontIdx]);
+  });
+
+  function showTopbar() {
+    topbar.classList.add('visible');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(function() { topbar.classList.remove('visible'); }, 3000);
+  }
+  document.addEventListener('mousemove', showTopbar);
+  document.addEventListener('touchstart', showTopbar);
+  showTopbar();
+
+  function onNavClick(e) {
+    showChapter(parseInt(this.getAttribute('data-chapter'), 10));
+  }
+  tocLinks.forEach(function(link) { link.addEventListener('click', onNavClick); });
+  document.querySelectorAll('.nav-link').forEach(function(link) { link.addEventListener('click', onNavClick); });
+
+  document.addEventListener('keydown', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    var activeIdx = -1;
+    sections.forEach(function(s, i) { if (s.classList.contains('active')) activeIdx = i; });
+    if (e.key === 'ArrowLeft' && activeIdx > 0) { showChapter(activeIdx - 1); e.preventDefault(); }
+    if (e.key === 'ArrowRight' && activeIdx < totalChapters - 1) { showChapter(activeIdx + 1); e.preventDefault(); }
+  });
+})();
+</script>
+{{ end }}

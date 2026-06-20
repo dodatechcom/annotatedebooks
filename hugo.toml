@@ -1,5 +1,5 @@
-baseURL = 'https://annotatedbook.com/'
-title = 'Annotated Book'
+baseURL = 'https://annotatedebooks.com/'
+title = 'Annotated EBooks'
 theme = 'hextra'
 locale = 'en-us'
 enableRobotsTXT = true
@@ -12,6 +12,13 @@ enableInlineShortcodes = true
   home = ['html']
   page = ['html']
   section = ['html', 'rss']
+
+[outputFormats]
+  [outputFormats.CHAPTERS]
+    mediaType = 'application/json'
+    baseName = 'chapters'
+    isPlainText = true
+    notAlternative = false
 
 [markup]
   [markup.goldmark]
@@ -32,13 +39,23 @@ enableInlineShortcodes = true
     pageRef = '/about'
     weight = 2
   [[menu.main]]
-    name = 'Search'
+    identifier = 'blog'
+    name = 'Blog'
+    pageRef = '/blog'
     weight = 3
+  [[menu.main]]
+    identifier = 'categories'
+    name = 'Categories'
+    pageRef = '/categories'
+    weight = 4
+  [[menu.main]]
+    name = 'Search'
+    weight = 4
     [menu.main.params]
       type = 'search'
   [[menu.main]]
     name = 'Store'
-    weight = 4
+    weight = 5
     url = 'https://store.dodatech.com'
     [menu.main.params]
       icon = 'shopping-cart'

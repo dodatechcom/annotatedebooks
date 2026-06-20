@@ -1,0 +1,252 @@
+{{ define "main" }}
+<link rel="stylesheet" href="/css/animated-books/normalize.css">
+<link rel="stylesheet" href="/css/animated-books/book.css">
+<link rel="stylesheet" href="/css/animated-books/books-custom.css">
+<script src="/js/animated-books/modernizr.custom.js"></script>
+
+{{ $chapters := where .RegularPages "Weight" "gt" 0 }}
+{{ $totalChapters := len $chapters }}
+{{ $editions := .Params.editions | default slice }}
+{{ $audioEdition := where $editions "class" "audio" }}
+{{ $nonAudio := where $editions "class" "ne" "audio" }}
+
+<div class="hx:mx-auto hx:max-w-[90rem]">
+  <main class="hx:w-full hx:break-words hx:min-h-[calc(100vh-var(--hextra-navbar-height))] hx:min-w-0 hx:pt-4 hx:pb-8 hx:pl-[max(env(safe-area-inset-left),1.5rem)] hx:pr-[max(env(safe-area-inset-right),1.5rem)]">
+    <br class="hx:mt-1.5 hx:text-sm">
+
+    <div class="book-hero">
+      <div class="book-hero-info">
+        <h1 class="book-hero-title">{{ .Title }}</h1>
+        <p class="book-hero-author">by {{ .Params.author }}</p>
+        <p class="book-hero-summary">{{ .Params.summary }}</p>
+        <div class="book-hero-stats">
+          <span class="stat-badge">{{ $totalChapters }} Chapters</span>
+          {{ if $audioEdition }}<span class="stat-badge">Free Audiobook</span>{{ end }}
+          <span class="stat-badge">{{ len $editions }} Editions</span>
+        </div>
+      </div>
+      {{ with index $nonAudio 0 }}
+      {{ $img := .coverImage | default "" }}
+      {{ if $img }}
+      {{ $heroImg := replace (replace $img ".png" "-sm.png") ".jpg" "-sm.jpg" }}
+      <div class="book-hero-cover">
+        <a href="{{ $.RelPermalink }}{{ .read_url }}/">
+          <img src="{{ $heroImg }}" alt="{{ $.Title }}">
+        </a>
+      </div>
+      {{ end }}
+      {{ end }}
+    </div>
+
+    {{ $anyCover := false }}
+    {{ range $editions }}{{ if .coverImage }}{{ $anyCover = true }}{{ end }}{{ end }}
+    {{ if $anyCover }}
+    <div class="cover-strip">
+      {{ range $editions }}
+      {{ $img := .coverImage | default "" }}
+      {{ if $img }}
+      {{ $thumb := replace (replace $img ".png" "-sm.png") ".jpg" "-sm.jpg" }}
+      <a href="{{ if .listen_url }}{{ if hasPrefix .listen_url "http" }}{{ .listen_url }}{{ else }}{{ $.RelPermalink }}{{ .listen_url }}/{{ end }}{{ else }}{{ $.RelPermalink }}{{ .read_url }}/{{ end }}" class="cover-strip-item">
+        <img src="{{ $thumb }}" alt="{{ .name }}" loading="lazy">
+        <span class="cover-strip-label">{{ .editionLabel | default .name }}</span>
+      </a>
+      {{ end }}
+      {{ end }}
+    </div>
+    {{ end }}
+
+    <div class="content hx:text-center hx:mb-4 hx:max-w-3xl hx:mx-auto">
+      {{ .Content }}
+    </div>
+
+    {{ if .Params.showComparisonTable }}
+    <div class="seo-content">
+      <h2>Compare Editions</h2>
+      <table class="features-table">
+        <thead>
+          <tr>
+            <th>Feature</th>
+            <th>Complete</th>
+            <th>Annotated</th>
+            <th>Simple English</th>
+            <th>15-Minutes</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr>
+            <td>Full Original Text (61 chapters)</td>
+            <td>✓</td>
+            <td>✓</td>
+            <td>—</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Simplified Modern English</td>
+            <td>—</td>
+            <td>139 passages</td>
+            <td>Full (38,750 words)</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Literary Annotations</td>
+            <td>—</td>
+            <td>242 annotations</td>
+            <td>—</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Chapter Summaries</td>
+            <td>—</td>
+            <td>✓</td>
+            <td>—</td>
+            <td>One-sentence each</td>
+          </tr>
+          <tr>
+            <td>Themes & Analysis</td>
+            <td>—</td>
+            <td>✓</td>
+            <td>—</td>
+            <td>✓</td>
+          </tr>
+          <tr>
+            <td>Character Profiles</td>
+            <td>—</td>
+            <td>✓</td>
+            <td>✓</td>
+            <td>✓</td>
+          </tr>
+          <tr>
+            <td>Discussion Questions</td>
+            <td>—</td>
+            <td>76</td>
+            <td>✓</td>
+            <td>—</td>
+          </tr>
+          <tr>
+            <td>Glossary</td>
+            <td>—</td>
+            <td>143 terms</td>
+            <td>—</td>
+            <td>✓</td>
+          </tr>
+          <tr>
+            <td>No Preview Limit</td>
+            <td>✓</td>
+            <td>—</td>
+            <td>—</td>
+            <td>—</td>
+          </tr>
+        </tbody>
+        <tfoot>
+          <tr>
+            <td></td>
+            <td><a href="{{ $.RelPermalink }}complete/" class="table-buy-link">Read Free</a></td>
+            {{ $abuy := "https://store.dodatech.com" }}
+            {{ with .Params.editions }}{{ with index . 2 }}{{ with .buy_url }}{{ $abuy = . }}{{ end }}{{ end }}{{ end }}
+            <td><a href="{{ $abuy }}" class="table-buy-link" target="_blank" rel="noopener">Buy $9.99</a></td>
+            {{ $sbuy := "https://store.dodatech.com" }}
+            {{ with .Params.editions }}{{ with index . 3 }}{{ with .buy_url }}{{ $sbuy = . }}{{ end }}{{ end }}{{ end }}
+            <td><a href="{{ $sbuy }}" class="table-buy-link" target="_blank" rel="noopener">Buy $9.99</a></td>
+            {{ $fbuy := "https://store.dodatech.com" }}
+            {{ with .Params.editions }}{{ with index . 4 }}{{ with .buy_url }}{{ $fbuy = . }}{{ end }}{{ end }}{{ end }}
+            <td><a href="{{ $fbuy }}" class="table-buy-link" target="_blank" rel="noopener">Buy $9.99</a></td>
+          </tr>
+        </tfoot>
+      </table>
+      <p class="blog-cta">Looking for chapter summaries, literary analysis, or ESL resources? <a href="/blog/">Read our detailed blog posts</a> about each edition →</p>
+    </div>
+    {{ end }}
+
+    <div class="chapter-list">
+      <details>
+        <summary><h2>All {{ $totalChapters }} Chapters <span class="expand-icon">▼</span></h2></summary>
+        <div class="chapter-grid">
+          {{ range $chapters }}
+          <a href="complete/#chapter-{{ .Weight }}" class="chapter-item">{{ .Weight }}</a>
+          {{ end }}
+        </div>
+      </details>
+    </div>
+
+     <div class="read-now-bar">
+        {{ range $editions }}
+        {{ if .listen_url }}
+          {{ if hasPrefix .listen_url "http" }}
+        <a class="btn read-now-btn" href="{{ .listen_url }}" target="_blank" rel="noopener">{{ .name }}</a>
+          {{ else }}
+        <a class="btn read-now-btn" href="{{ $.RelPermalink }}{{ .listen_url }}/">{{ .name }}</a>
+          {{ end }}
+        {{ else }}
+        <a class="btn read-now-btn" href="{{ $.RelPermalink }}{{ .read_url }}/">{{ .name }}</a>
+        {{ end }}
+        {{ end }}
+     </div>
+
+    <div class="animated-books-container">
+      <div class="component">
+        <ul class="align">
+          {{ range $editions }}
+          <li>
+            {{ if .listen_url }}
+            <div class="music-card" style="--card-color: {{ $.Params.color | default "#8e44ad" }}">
+              <div class="music-icon">
+                <svg viewBox="0 0 100 100" fill="none">
+                  <circle cx="50" cy="50" r="45" stroke="currentColor" stroke-width="2" fill="none"/>
+                  <polygon points="38,30 38,70 72,50" fill="currentColor" stroke="none"/>
+                </svg>
+              </div>
+              <h3>{{ .name }}</h3>
+              <p class="music-desc">{{ .description }}</p>
+              <a href="{{ if hasPrefix .listen_url "http" }}{{ .listen_url }}{{ else }}{{ $.RelPermalink }}{{ .listen_url }}/{{ end }}" class="music-btn"{{ if hasPrefix .listen_url "http" }} target="_blank" rel="noopener"{{ end }}>Listen Free</a>
+            </div>
+            {{ else }}
+            <figure class="book">
+              <ul class="hardcover_front">
+                <li>
+                  <a href="{{ $.RelPermalink }}{{ .read_url }}/" class="cover-link">
+{{ $coverImage := .coverImage | default $.Params.coverImage }}{{ $coverMd := replace (replace $coverImage ".png" "-md.png") ".jpg" "-md.jpg" }}
+                  <div class="coverDesign {{ .class | default "annotated" }}"{{ with $coverMd }} style="background-image:url({{ . }});background-size:cover;background-position:center;"{{ end }}>
+                    {{ if not $coverImage }}<h1>{{ .shortTitle | default $.Title }}</h1>
+                    <p>{{ .editionLabel | default .name }}</p>{{ end }}
+                  </div>
+                  </a>
+                </li>
+                <li></li>
+              </ul>
+              <ul class="page">
+                <li></li>
+                <li>
+                  <p class="page-desc">{{ .description }}</p>
+                  <a class="btn" href="{{ $.RelPermalink }}{{ .read_url }}/">Read online</a>
+                  {{ if .buy_url }}
+                  <a class="btn btn-buy" href="{{ .buy_url }}" target="_blank" rel="noopener">Buy now</a>
+                  {{ end }}
+                </li>
+                <li></li>
+                <li></li>
+                <li></li>
+              </ul>
+              <ul class="hardcover_back">
+                <li></li>
+                <li></li>
+              </ul>
+              <ul class="book_spine">
+                <li></li>
+                <li></li>
+              </ul>
+              <figcaption>
+                <h1>{{ .name }}</h1>
+                <span>{{ $.Params.author | default "" }}</span>
+                <p>{{ .description }}</p>
+              </figcaption>
+            </figure>
+            {{ end }}
+          </li>
+          {{ end }}
+        </ul>
+      </div>
+    </div>
+    {{ if eq $.Slug "pride-and-prejudice" }}{{ partial "bundle-offer.html" . }}{{ end }}
+  </main>
+</div>
+{{ end }}

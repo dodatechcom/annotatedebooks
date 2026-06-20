@@ -1,0 +1,269 @@
+{{ define "main" }}
+<style>
+  html, body { height: 100%; margin: 0; padding: 0; }
+  body.reader-page { overflow: hidden; background: #2c2c2c; }
+  #reader-wrapper { position: relative; width: 100vw; height: 100vh; background: #2c2c2c; }
+  #viewport { position: absolute; inset: 0; }
+  #viewport iframe { border: none; }
+
+  #topbar {
+    position: fixed; top: 0; left: 0; right: 0; z-index: 10001;
+    background: linear-gradient(to bottom, rgba(44,44,44,0.9), transparent);
+    padding: 14px 24px;
+    display: flex; align-items: center; gap: 16px;
+    opacity: 0; transition: opacity 0.3s;
+    pointer-events: none;
+  }
+  #topbar.visible { opacity: 1; pointer-events: auto; }
+  #topbar .book-title { color: #ddd; font-size: 14px; font-weight: 600; flex: 1; }
+  #topbar .chapter-title { color: #aaa; font-size: 13px; flex: 2; text-align: center; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  #topbar .page-num { color: #999; font-size: 12px; white-space: nowrap; }
+
+  #toc-btn {
+    background: none; border: 1px solid rgba(255,255,255,0.3);
+    color: #ddd; padding: 4px 12px; border-radius: 4px;
+    font-size: 13px; cursor: pointer;
+  }
+  #toc-btn:hover { background: rgba(255,255,255,0.1); }
+
+  #toc-panel {
+    position: fixed; top: 0; left: -320px; width: 300px; height: 100%;
+    z-index: 10002; background: #1a1a2e; color: #c0c0c0;
+    overflow-y: auto; transition: left 0.3s ease;
+    padding: 24px 20px;
+    box-shadow: 2px 0 15px rgba(0,0,0,0.4);
+  }
+  #toc-panel.open { left: 0; }
+  #toc-panel h3 { color: #ddd; font-size: 15px; font-weight: 600; margin-bottom: 16px; border-bottom: 1px solid #333; padding-bottom: 8px; }
+  #toc-panel ul { list-style: none; padding: 0; margin: 0; }
+  #toc-panel li { margin-bottom: 2px; }
+  #toc-panel a {
+    display: block; color: #a0a0c0; text-decoration: none;
+    padding: 7px 10px; border-radius: 4px; font-size: 14px;
+    cursor: pointer;
+  }
+  #toc-panel a:hover, #toc-panel a.active { background: rgba(255,255,255,0.08); color: #fff; }
+  #toc-panel a.active { border-left: 3px solid #4a90d9; }
+
+  #toc-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    z-index: 10001; background: rgba(0,0,0,0.4);
+    opacity: 0; pointer-events: none; transition: opacity 0.3s;
+  }
+  #toc-overlay.visible { opacity: 1; pointer-events: auto; }
+
+  .nav-zone { position: fixed; top: 0; bottom: 0; width: 15%; z-index: 10000; cursor: pointer; }
+  .nav-zone.prev { left: 0; }
+  .nav-zone.next { right: 0; }
+  .nav-zone:hover { background: rgba(255,255,255,0.03); }
+
+  #reader-wrapper { perspective: 1500px; }
+  #viewport { transition: transform 0.3s ease, opacity 0.3s ease; }
+
+  #page-loaded {
+    position: fixed; top: 50%; left: 50%; transform: translate(-50%, -50%);
+    color: #888; font-size: 15px; z-index: 1; pointer-events: none;
+  }
+
+  @media screen and (max-width: 768px) {
+    #topbar { padding: 10px 14px; }
+    #topbar .chapter-title { display: none; }
+    #toc-panel { width: 260px; left: -280px; }
+    .nav-zone { width: 20%; }
+  }
+</style>
+
+<div id="reader-wrapper">
+  <div id="viewport"></div>
+  <div id="page-loaded">Loading book...</div>
+</div>
+
+<div id="toc-overlay"></div>
+<div id="toc-panel">
+  <h3>Table of Contents</h3>
+  <nav id="toc"><ul></ul></nav>
+</div>
+<div id="topbar">
+  <button id="toc-btn" aria-label="Table of Contents">☰</button>
+  <span class="book-title">{{ .Parent.Title }}</span>
+  <span class="chapter-title" id="topbar-chapter"></span>
+  <span class="page-num" id="topbar-page"></span>
+</div>
+<div class="nav-zone prev" id="zone-prev" title="Previous page"></div>
+<div class="nav-zone next" id="zone-next" title="Next page"></div>
+
+<script src="/js/epubjs/jszip.min.js"></script>
+<script src="/js/epubjs/epub.min.js"></script>
+<script>
+(function() {
+  var bookPath = '{{ .Parent.Params.epub }}';
+  if (!bookPath) {
+    document.getElementById('page-loaded').textContent = 'No EPUB file configured for this book.';
+    return;
+  }
+
+  var loadingEl = document.getElementById('page-loaded');
+  var topbar = document.getElementById('topbar');
+  var topbarChapter = document.getElementById('topbar-chapter');
+  var topbarPage = document.getElementById('topbar-page');
+  var tocBtn = document.getElementById('toc-btn');
+  var tocPanel = document.getElementById('toc-panel');
+  var tocOverlay = document.getElementById('toc-overlay');
+  var tocNav = document.getElementById('toc');
+  var hideTimer = null;
+
+  function showTopbar() {
+    topbar.classList.add('visible');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(function() { topbar.classList.remove('visible'); }, 3000);
+  }
+
+  var book = ePub(bookPath);
+  var rendition = book.renderTo('viewport', {
+    width: window.innerWidth,
+    height: window.innerHeight,
+    manager: 'default',
+    flow: 'paginated',
+    snap: true
+  });
+
+  rendition.display().then(function() {
+    loadingEl.style.display = 'none';
+  }).catch(function() {
+    loadingEl.textContent = 'Failed to load book.';
+  });
+
+  rendition.on('relocated', function(location) {
+    var info = location.start;
+    var displayText = '';
+    if (info.display && info.display.page) {
+      displayText = '— Page ' + info.display.page;
+    }
+    if (info.currentChapter) {
+      topbarChapter.textContent = info.currentChapter.label || '';
+    }
+    topbarPage.textContent = displayText;
+    showTopbar();
+  });
+
+  rendition.on('rendered', function(section) {
+    if (section && section.label) {
+      topbarChapter.textContent = section.label;
+    }
+  });
+
+  // Build TOC from EPUB navigation
+  book.loaded.navigation.then(function(nav) {
+    var ul = tocNav.querySelector('ul');
+    nav.toc.forEach(function(item) {
+      var li = document.createElement('li');
+      var a = document.createElement('a');
+      a.textContent = item.label;
+      a.addEventListener('click', function(e) {
+        e.preventDefault();
+        rendition.display(item.href);
+        tocPanel.classList.remove('open');
+        tocOverlay.classList.remove('visible');
+      });
+      li.appendChild(a);
+      ul.appendChild(li);
+    });
+    if (nav.toc.length > 0) {
+      var first = nav.toc[0];
+      topbarChapter.textContent = first.label || '';
+    }
+  }).catch(function() {
+    // Fallback: no TOC available
+  });
+
+  // Page turn animation
+  var isFlipping = false;
+  var vp = document.getElementById('viewport');
+
+  function flipPage(direction) {
+    if (isFlipping) {
+      console.log('flipPage: blocked (already flipping)');
+      return;
+    }
+    isFlipping = true;
+    console.log('flipPage: starting', direction);
+
+    // Phase 1 — tilt current page away
+    vp.style.transition = 'transform 0.2s ease-in, opacity 0.2s ease-in';
+    vp.style.transform = direction === 'next'
+      ? 'rotateY(-12deg) translateX(-3%)'
+      : 'rotateY(12deg) translateX(3%)';
+    vp.style.opacity = '0.5';
+
+    setTimeout(function() {
+      // Navigate
+      console.log('flipPage: navigating', direction);
+      if (direction === 'next') rendition.next();
+      else rendition.prev();
+
+      // Phase 2 — slide new page in from the opposite side
+      vp.style.transition = 'none';
+      vp.style.transform = direction === 'next'
+        ? 'rotateY(8deg) translateX(3%)'
+        : 'rotateY(-8deg) translateX(-3%)';
+      vp.style.opacity = '0.5';
+      void vp.offsetHeight; // force reflow
+
+      vp.style.transition = 'transform 0.25s ease-out, opacity 0.25s ease-out';
+      vp.style.transform = 'rotateY(0deg) translateX(0%)';
+      vp.style.opacity = '1';
+
+      setTimeout(function() {
+        isFlipping = false;
+        console.log('flipPage: done');
+      }, 300);
+    }, 250);
+  }
+
+  // Keyboard navigation
+  document.addEventListener('keydown', function(e) {
+    if (tocPanel.classList.contains('open')) {
+      if (e.key === 'Escape') {
+        tocPanel.classList.remove('open');
+        tocOverlay.classList.remove('visible');
+      }
+      return;
+    }
+    if (e.key === 'ArrowLeft') { e.preventDefault(); flipPage('prev'); }
+    else if (e.key === 'ArrowRight') { e.preventDefault(); flipPage('next'); }
+  });
+
+  // Nav zone clicks
+  document.getElementById('zone-prev').addEventListener('click', function() {
+    flipPage('prev');
+  });
+  document.getElementById('zone-next').addEventListener('click', function() {
+    flipPage('next');
+  });
+
+  // TOC panel
+  tocBtn.addEventListener('click', function() {
+    var open = !tocPanel.classList.contains('open');
+    tocPanel.classList.toggle('open', open);
+    tocOverlay.classList.toggle('visible', open);
+  });
+  tocOverlay.addEventListener('click', function() {
+    tocPanel.classList.remove('open');
+    tocOverlay.classList.remove('visible');
+  });
+
+  // Auto-hide topbar
+  document.addEventListener('mousemove', showTopbar);
+  document.addEventListener('touchstart', showTopbar);
+
+  // Handle resize
+  var resizeTimer;
+  window.addEventListener('resize', function() {
+    clearTimeout(resizeTimer);
+    resizeTimer = setTimeout(function() {
+      rendition.resize(window.innerWidth, window.innerHeight);
+    }, 200);
+  });
+})();
+</script>
+{{ end }}

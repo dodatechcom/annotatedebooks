@@ -1,0 +1,110 @@
+.bundle-offer-section {
+  margin: 60px auto;
+  max-width: 800px;
+  text-align: center;
+}
+
+.bundle-section-title {
+  font-size: 2em;
+  margin-bottom: 0.3em;
+  color: #2a323f;
+}
+
+.bundle-section-subtitle {
+  font-size: 1.1em;
+  color: #666;
+  margin-bottom: 30px;
+}
+
+.bundle-card-link {
+  text-decoration: none;
+  display: block;
+}
+
+.bundle-card {
+  display: flex;
+  flex-direction: row;
+  background: #fff;
+  border: 1px solid #e0d5c7;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  overflow: hidden;
+  text-align: left;
+  transition: box-shadow 0.3s, transform 0.3s;
+}
+
+.bundle-card:hover {
+  box-shadow: 0 8px 30px rgba(0,0,0,0.15);
+  transform: translateY(-2px);
+}
+
+.bundle-card-image {
+  flex: 0 0 45%;
+  max-width: 45%;
+  background: #f5f0eb;
+}
+
+.bundle-card-image img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.bundle-card-body {
+  flex: 1;
+  padding: 30px;
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+}
+
+.bundle-card-body h3 {
+  font-size: 1.4em;
+  color: #2a323f;
+  margin: 0 0 4px;
+}
+
+.bundle-card-subtitle {
+  font-size: 0.95em;
+  color: #888;
+  margin: 0 0 8px;
+}
+
+.bundle-card-desc {
+  font-size: 0.85em;
+  color: #666;
+  margin: 0 0 20px;
+  line-height: 1.4;
+}
+
+.bundle-card-btn {
+  display: inline-block;
+  background: #323b4c;
+  color: #fff;
+  font-size: 0.95em;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 12px 28px;
+  text-decoration: none;
+  letter-spacing: 1px;
+  align-self: flex-start;
+  transition: background 0.3s;
+}
+
+.bundle-card:hover .bundle-card-btn {
+  background: #e6b741;
+  color: #323b4c;
+}
+
+@media screen and (max-width: 700px) {
+  .bundle-card {
+    flex-direction: column;
+  }
+  .bundle-card-image {
+    flex: none;
+    max-width: 100%;
+  }
+  .bundle-card-body {
+    padding: 20px;
+  }
+}

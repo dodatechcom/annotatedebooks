@@ -1,0 +1,149 @@
+{{ define "main" }}
+{{ $book := .Parent }}
+
+<link rel="stylesheet" href="/css/turnjs-reader/reader.css">
+
+<div id="topbar">
+  <a href="{{ $book.RelPermalink }}" class="tb-back">&larr;</a>
+  <span class="tb-title">{{ $book.Title }}</span>
+  <button class="tb-btn" id="tb-font-btn">Aa</button>
+  <span class="tb-divider"></span>
+  <button class="tb-btn" id="tb-toc-btn" title="Toggle table of contents">☰</button>
+</div>
+
+<div id="app" class="content-font-md">
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <a href="{{ $book.RelPermalink }}" class="close-btn"><span>&larr; Book</span></a>
+      <h1>{{ $book.Title }}</h1>
+      <div class="meta"><span id="ch-count"></span> chapters</div>
+      <button id="sidebar-toggle" title="Toggle sidebar">☰</button>
+    </div>
+    <nav id="toc"></nav>
+  </div>
+
+  <div id="content">
+    <div id="chapter-container"></div>
+    <div id="loading-indicator" style="text-align:center;padding:4rem;color:#888;">Loading chapters…</div>
+  </div>
+</div>
+
+<script>
+(function() {
+  var bookSlug = '{{ $book.File.ContentBaseName }}';
+  var chapters = [];
+  var tocEl = document.getElementById('toc');
+  var container = document.getElementById('chapter-container');
+  var loadingEl = document.getElementById('loading-indicator');
+  var sidebar = document.getElementById('sidebar');
+  var topbar = document.getElementById('topbar');
+  var content = document.getElementById('content');
+  var hideTimer = null;
+  var storageKey = 'reader-' + bookSlug;
+
+  var hashMatch = window.location.hash.match(/^#chapter-(\d+)$/);
+  var startIdx = hashMatch ? parseInt(hashMatch[1], 10) - 1 : -1;
+
+  if (startIdx < 0) {
+    try {
+      var saved = localStorage.getItem(storageKey);
+      if (saved !== null) startIdx = parseInt(saved, 10);
+    } catch(e) {}
+  }
+
+  var fontSizes = ['content-font-sm', 'content-font-md', 'content-font-lg'];
+  var fontIdx = 1;
+
+  function renderChapter(idx) {
+    if (idx < 0 || idx >= chapters.length) return;
+    var ch = chapters[idx];
+    container.innerHTML =
+      '<div class="chapter-content active">' +
+        ch.content +
+        '<nav class="chapter-nav">' +
+          (idx > 0 ? '<a data-chapter="' + (idx - 1) + '" class="nav-link prev">&larr; Previous Chapter</a>' : '') +
+          (idx < chapters.length - 1 ? '<a data-chapter="' + (idx + 1) + '" class="nav-link next">Next Chapter &rarr;</a>' : '') +
+        '</nav>' +
+      '</div>';
+    content.scrollTop = 0;
+    history.replaceState(null, '', '#chapter-' + (idx + 1));
+    try { localStorage.setItem(storageKey, idx); } catch(e) {}
+    attachNavListeners();
+    updateTocActive(idx);
+  }
+
+  function updateTocActive(idx) {
+    tocEl.querySelectorAll('.toc-link').forEach(function(link, i) {
+      link.classList.toggle('active', i === idx);
+    });
+  }
+
+  function buildToc() {
+    tocEl.innerHTML = chapters.map(function(ch, i) {
+      return '<a data-chapter="' + i + '" class="toc-link' + (i === startIdx ? ' active' : '') + '">' + ch.title + '</a>';
+    }).join('');
+    document.getElementById('ch-count').textContent = chapters.length;
+  }
+
+  function attachNavListeners() {
+    tocEl.querySelectorAll('.toc-link').forEach(function(link) {
+      link.addEventListener('click', function() {
+        renderChapter(parseInt(this.getAttribute('data-chapter'), 10));
+      });
+    });
+    container.querySelectorAll('.nav-link').forEach(function(link) {
+      link.addEventListener('click', function() {
+        renderChapter(parseInt(this.getAttribute('data-chapter'), 10));
+      });
+    });
+  }
+
+  var chaptersUrl = '/books/' + bookSlug + '/chapters.json';
+  fetch(chaptersUrl).then(function(r) { return r.json(); }).then(function(data) {
+    chapters = data.chapters;
+    loadingEl.style.display = 'none';
+
+    if (startIdx < 0 || startIdx >= chapters.length) startIdx = 0;
+
+    buildToc();
+    renderChapter(startIdx);
+    attachNavListeners();
+  }).catch(function() {
+    loadingEl.textContent = 'Failed to load chapters.';
+  });
+
+  document.getElementById('sidebar-toggle').addEventListener('click', function() {
+    sidebar.classList.toggle('collapsed');
+  });
+  document.getElementById('tb-toc-btn').addEventListener('click', function() {
+    sidebar.classList.toggle('collapsed');
+  });
+
+  document.getElementById('tb-font-btn').addEventListener('click', function() {
+    var app = document.getElementById('app');
+    fontSizes.forEach(function(c) { app.classList.remove(c); });
+    fontIdx = (fontIdx + 1) % fontSizes.length;
+    app.classList.add(fontSizes[fontIdx]);
+  });
+
+  function showTopbar() {
+    topbar.classList.add('visible');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(function() { topbar.classList.remove('visible'); }, 3000);
+  }
+  document.addEventListener('mousemove', showTopbar);
+  document.addEventListener('touchstart', showTopbar);
+  showTopbar();
+
+  document.addEventListener('keydown', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    var activeIdx = -1;
+    tocEl.querySelectorAll('.toc-link').forEach(function(link, i) {
+      if (link.classList.contains('active')) activeIdx = i;
+    });
+    if (e.key === 'ArrowLeft' && activeIdx > 0) { renderChapter(activeIdx - 1); e.preventDefault(); }
+    if (e.key === 'ArrowRight' && activeIdx < chapters.length - 1) { renderChapter(activeIdx + 1); e.preventDefault(); }
+  });
+})();
+</script>
+{{ end }}

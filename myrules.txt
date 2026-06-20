@@ -1,0 +1,83 @@
+What kinds of rules are you thinking about? Some areas we should probably define:
+
+Content rules per chapter:
+
+What sections should each chapter page have? (summary, original text, simplified English, vocabulary, analysis, store link — anything else?)
+How many vocabulary words per chapter?
+How long should summaries and analysis be?
+Annotation/style rules:
+
+Level of simplification for the "Simplified English"?
+Citation format for original text?
+Voice/tone for literary analysis?
+Should each chapter have discussion questions?
+Structural rules:
+
+URL pattern (e.g., /books/pride-and-prejudice/chapter-1/)?
+Chapter numbering for books with parts/volumes?
+How to handle chapter titles vs numbers?
+Book metadata (author, year, genre, difficulty level)?
+SEO rules:
+
+Title tag format?
+Meta description format?
+Internal linking between chapters/books?
+Store linking rules:
+
+Where exactly on each page does the store CTA appear?
+Do we use in-text affiliate-style links too?
+Generation rules:
+
+Do you want a script that creates the skeleton, or will content be hand-written?
+If scripted: what content is auto-generated vs placeholder?
+What topics did you have in mind?
+
+
+
+
+**************
+
+
+
+Now — what rules do you want to establish? Here are the categories I think we should define before generating anything:
+
+1. What counts as "annotated" per chapter?
+Pick sections per chapter:
+
+ Summary (how many sentences?)
+ Original text excerpt (how many passages?)
+ Simplified English version
+ Vocabulary notes (how many words?)
+ Literary analysis (themes, motifs, context — how long?)
+ Discussion questions
+ Store CTA (bottom? top? both?)
+2. Book selection filtering
+Exclude non-fiction (autobiographies, philosophy, history)?
+Exclude plays vs include as-is?
+Exclude poetry collections?
+Handle "Complete Works" volumes?
+3. Content sourcing
+All original text from Project Gutenberg (public domain, plain text)
+Simplified English: manually written or use a consistent approach?
+Vocabulary: manually curated per chapter or automated?
+4. Structure conventions
+URL format: /books/moby-dick/chapter-1/
+Chapter naming: "Chapter 1" or chapter titles where available?
+Books with parts/volumes: /books/war-and-peace/part-1/chapter-1/?
+5. Generation workflow
+Script to create markdown skeletons from Gutenberg text?
+Or hand-write each chapter?
+If scripted: what's placeholder vs real content?
+What rules do you want to set first?
+
+
+
+
+***************************
+
+
+list of ebooks
+check Public domain criteria
+
+
+

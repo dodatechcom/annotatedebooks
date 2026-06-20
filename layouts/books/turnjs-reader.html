@@ -1,0 +1,175 @@
+{{ define "main" }}
+{{ $book := .Parent }}
+{{ $chapters := .Parent.RegularPages.ByWeight }}
+{{ $totalChapters := len $chapters }}
+{{ $previewCount := math.Ceil (mul $totalChapters 0.25) }}
+{{ $previewChapters := first $previewCount $chapters }}
+{{ $editions := $book.Params.editions }}
+
+<link rel="stylesheet" href="/css/turnjs-reader/reader.css">
+
+<div id="topbar">
+  <a href="{{ $book.RelPermalink }}" class="tb-back">&larr;</a>
+  <span class="tb-title">{{ $book.Title }}</span>
+  <button class="tb-btn" id="tb-font-btn">Aa</button>
+  <span class="tb-divider"></span>
+  <button class="tb-btn" id="tb-toc-btn" title="Toggle table of contents">☰</button>
+</div>
+
+<div id="app" class="content-font-md">
+  <!-- Left Sidebar: TOC -->
+  <div id="sidebar">
+    <div id="sidebar-header">
+      <a href="{{ $book.RelPermalink }}" class="close-btn"><span>&larr; Book</span></a>
+      <h1>{{ $book.Title }}</h1>
+      <div class="meta">{{ $previewCount }} of {{ $totalChapters }} chapters</div>
+      <button id="sidebar-toggle" title="Toggle sidebar">☰</button>
+    </div>
+    <nav id="toc">
+      {{ range $i, $ch := $previewChapters }}
+      <a data-chapter="{{ $i }}" class="toc-link{{ if eq $i 0 }} active{{ end }}">{{ $ch.Title }}</a>
+      {{ end }}
+    </nav>
+    <div id="sidebar-footer">
+      <span class="preview-label">Free preview</span>
+      <a href="{{ (index $editions 0).buy_url }}" class="buy-link" target="_blank" rel="noopener">Buy Full Book</a>
+    </div>
+  </div>
+
+  <!-- Center: Chapter Content -->
+  <div id="content">
+    {{ range $i, $ch := $previewChapters }}
+    <div class="chapter-content{{ if eq $i 0 }} active{{ end }}" data-chapter="{{ $i }}">
+      {{ $ch.Content }}
+      <nav class="chapter-nav">
+        {{ if gt $i 0 }}<a data-chapter="{{ sub $i 1 }}" class="nav-link prev">&larr; Previous Chapter</a>{{ end }}
+        {{ if lt (add $i 1) $previewCount }}<a data-chapter="{{ add $i 1 }}" class="nav-link next">Next Chapter &rarr;</a>{{ end }}
+      </nav>
+    </div>
+    {{ end }}
+
+    <!-- Edition cards below content -->
+    <div class="editions-below">
+      <h3>Available Editions</h3>
+      <div class="edition-card-row">
+        {{ range $editions }}
+        <div class="edition-card">
+          <span class="edition-badge {{ .class }}">{{ .editionLabel }}</span>
+          <h4>{{ .name }}</h4>
+          <p>{{ .description }}</p>
+          {{ if .listen_url }}
+          <a href="{{ .listen_url }}" class="buy-btn" target="_blank" rel="noopener">Listen Free</a>
+          {{ else }}
+          <a href="{{ .buy_url }}" class="buy-btn" target="_blank" rel="noopener">Buy {{ .shortTitle }}</a>
+          {{ end }}
+        </div>
+        {{ end }}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Sidebar: Editions -->
+  <div id="editions-sidebar">
+    <h3>Editions</h3>
+    {{ range $editions }}
+    <div class="edition-card">
+      <span class="edition-badge {{ .class }}">{{ .editionLabel }}</span>
+      <h4>{{ .name }}</h4>
+      <p>{{ .description }}</p>
+      {{ if .listen_url }}
+      <a href="{{ .listen_url }}" class="buy-btn" target="_blank" rel="noopener">Listen Free</a>
+      {{ else }}
+      <a href="{{ .buy_url }}" class="buy-btn" target="_blank" rel="noopener">Buy</a>
+      {{ end }}
+    </div>
+    {{ end }}
+  </div>
+</div>
+
+<script>
+(function() {
+  var tocLinks = document.querySelectorAll('.toc-link');
+  var sections = document.querySelectorAll('.chapter-content');
+  var sidebar = document.getElementById('sidebar');
+  var topbar = document.getElementById('topbar');
+  var content = document.getElementById('content');
+  var hideTimer = null;
+  var totalChapters = sections.length;
+
+  var storageKey = 'reader-' + window.location.pathname.replace(/\//g, '-');
+
+  function showChapter(idx, save) {
+    if (idx < 0 || idx >= totalChapters) return;
+    tocLinks.forEach(function(link, i) {
+      link.classList.toggle('active', i === idx);
+    });
+    sections.forEach(function(section, i) {
+      section.classList.toggle('active', i === idx);
+    });
+    content.scrollTop = 0;
+    history.replaceState(null, '', '#chapter-' + (idx + 1));
+    if (save !== false) {
+      try { localStorage.setItem(storageKey, idx); } catch(e) {}
+    }
+  }
+
+  var startIdx = 0;
+  var hashMatch = window.location.hash.match(/^#chapter-(\d+)$/);
+  if (hashMatch) {
+    var h = parseInt(hashMatch[1], 10) - 1;
+    if (h >= 0 && h < totalChapters) startIdx = h;
+  } else {
+    try {
+      var saved = localStorage.getItem(storageKey);
+      if (saved !== null) startIdx = parseInt(saved, 10);
+      if (isNaN(startIdx) || startIdx < 0 || startIdx >= totalChapters) startIdx = 0;
+    } catch(e) {}
+  }
+  showChapter(startIdx, false);
+
+  /* Sidebar toggle */
+  document.getElementById('sidebar-toggle').addEventListener('click', function() {
+    sidebar.classList.toggle('collapsed');
+  });
+  document.getElementById('tb-toc-btn').addEventListener('click', function() {
+    sidebar.classList.toggle('collapsed');
+  });
+
+  /* Font size cycling */
+  var fontSizes = ['content-font-sm', 'content-font-md', 'content-font-lg'];
+  var fontIdx = 1;
+  document.getElementById('tb-font-btn').addEventListener('click', function() {
+    var app = document.getElementById('app');
+    fontSizes.forEach(function(c) { app.classList.remove(c); });
+    fontIdx = (fontIdx + 1) % fontSizes.length;
+    app.classList.add(fontSizes[fontIdx]);
+  });
+
+  /* Top bar auto-hide */
+  function showTopbar() {
+    topbar.classList.add('visible');
+    clearTimeout(hideTimer);
+    hideTimer = setTimeout(function() { topbar.classList.remove('visible'); }, 3000);
+  }
+  document.addEventListener('mousemove', showTopbar);
+  document.addEventListener('touchstart', showTopbar);
+  showTopbar();
+
+  /* Chapter nav */
+  function onNavClick(e) {
+    showChapter(parseInt(this.getAttribute('data-chapter'), 10));
+  }
+  tocLinks.forEach(function(link) { link.addEventListener('click', onNavClick); });
+  document.querySelectorAll('.nav-link').forEach(function(link) { link.addEventListener('click', onNavClick); });
+
+  /* Arrow key navigation */
+  document.addEventListener('keydown', function(e) {
+    if (e.target.tagName === 'INPUT' || e.target.tagName === 'TEXTAREA') return;
+    var activeIdx = -1;
+    sections.forEach(function(s, i) { if (s.classList.contains('active')) activeIdx = i; });
+    if (e.key === 'ArrowLeft' && activeIdx > 0) { showChapter(activeIdx - 1); e.preventDefault(); }
+    if (e.key === 'ArrowRight' && activeIdx < totalChapters - 1) { showChapter(activeIdx + 1); e.preventDefault(); }
+  });
+})();
+</script>
+{{ end }}
